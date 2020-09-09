@@ -23,3 +23,7 @@ data:
     /^(.+)@(.+)$/ ${1}+noreply@${2}
 kind: ConfigMap
 ```
+Then mount the vol and can use env vars to configure various maps
+```yaml
+TODO
+```
