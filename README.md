@@ -23,7 +23,7 @@ data:
     /^(.+)@(.+)$/ ${1}+noreply@${2}
 kind: ConfigMap
 ```
-Then mount the vol and can use env vars to configure various maps
+Then mount the vol and can use env vars to configure various maps. Note container will need to be restarted after a config map change to pick up changes.
 ```yaml
 TODO
 ```
