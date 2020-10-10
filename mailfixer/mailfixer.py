@@ -22,12 +22,16 @@ class FixerHandler:
         return await proxy.handle_DATA(server, session, envelope)
 
 
+class FatController(Controller):
+    def factory(self):
+        # bump up max message size to 150MB
+        return SMTP(self.handler, data_size_limit=150 * 1024 * 1024)
+
+
 if __name__ == "__main__":
     handler = FixerHandler()
-    controller = Controller(handler, hostname="0.0.0.0")
-    # Run the event loop in a separate thread.
+    controller = FatController(handler, hostname="0.0.0.0")
     controller.start()
-    # Wait for an interrupt
     print("SMTP server running.")
     while time.sleep(900) is None:
         print("Still running: {}".format(datetime.now().isoformat()))
