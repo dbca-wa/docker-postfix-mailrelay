@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, email, logging, asyncio
+import os, email, asyncio
 from email.mime.text import MIMEText
 from aiosmtpd.handlers import Proxy
 from aiosmtpd.controller import Controller
@@ -9,7 +9,7 @@ proxy = Proxy(os.environ.get("REMOTE_HOSTNAME", "mail-relay"), os.environ.get("R
 
 class FixerHandler:
     async def handle_DATA(self, server, session, envelope):
-        print("Message from {} to {}".format(envelope.mail_from, envelope.rcpt_tos))
+        statusmsg = "Message from {} to {}".format(envelope.mail_from, envelope.rcpt_tos)
         msg = email.message_from_string(envelope.content.decode("utf-8"))
         if msg.get_content_maintype() != "text":
             content_types = [part.get_content_type() for part in msg.get_payload()]
@@ -17,7 +17,8 @@ class FixerHandler:
                 msg.set_payload([MIMEText("--", "plain")] + msg.get_payload())
                 envelope.content = msg.as_string()
                 envelope.original_content = msg.as_string().encode("utf-8")
-                print("Inserted TextBody '--'")
+                statusmsg += ": prepended TextBody '--'"
+        print(statusmsg)
         return await proxy.handle_DATA(server, session, envelope)
 
 
@@ -28,7 +29,6 @@ async def amain(loop):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()
     loop.create_task(amain(loop=loop))
     try:
