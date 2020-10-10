@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import os, time, email
-from datetime import datetime
+import os, email, logging, asyncio
 from email.mime.text import MIMEText
 from aiosmtpd.handlers import Proxy
 from aiosmtpd.controller import Controller
@@ -10,7 +9,7 @@ proxy = Proxy(os.environ.get("REMOTE_HOSTNAME", "mail-relay"), os.environ.get("R
 
 class FixerHandler:
     async def handle_DATA(self, server, session, envelope):
-        print("Message from {} to {} received at {}".format(envelope.mail_from, envelope.rcpt_tos, datetime.now().isoformat()))
+        print("Message from {} to {}".format(envelope.mail_from, envelope.rcpt_tos))
         msg = email.message_from_string(envelope.content.decode("utf-8"))
         if msg.get_content_maintype() != "text":
             content_types = [part.get_content_type() for part in msg.get_payload()]
@@ -22,17 +21,18 @@ class FixerHandler:
         return await proxy.handle_DATA(server, session, envelope)
 
 
-class FatController(Controller):
-    def factory(self):
-        # bump up max message size to 150MB
-        return SMTP(self.handler, data_size_limit=150 * 1024 * 1024)
+async def amain(loop):
+    handler = FixerHandler()
+    controller = Controller(handler, hostname="0.0.0.0", port=8025)
+    controller.start()
 
 
 if __name__ == "__main__":
-    handler = FixerHandler()
-    controller = FatController(handler, hostname="0.0.0.0")
-    controller.start()
-    print("SMTP server running.")
-    while time.sleep(900) is None:
-        print("Still running: {}".format(datetime.now().isoformat()))
-    controller.stop()
+    logging.basicConfig(level=logging.INFO)
+    loop = asyncio.get_event_loop()
+    loop.create_task(amain(loop=loop))
+    try:
+        print("SMTP server running.")
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
